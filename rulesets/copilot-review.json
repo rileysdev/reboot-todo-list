@@ -1,0 +1,16 @@
+{
+  "name": "control-plane-copilot-review",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "include": ["~DEFAULT_BRANCH"],
+      "exclude": []
+    }
+  },
+  "rules": [
+    {
+      "type": "copilot_code_review"
+    }
+  ]
+}

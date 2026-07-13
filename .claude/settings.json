@@ -1,0 +1,23 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/heartbeat.sh\"",
+            "timeout": 10,
+            "async": true,
+            "statusMessage": "Heartbeat to the control plane"
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/turn-budget.sh\"",
+            "timeout": 10,
+            "statusMessage": "Checking the session turn budget"
+          }
+        ]
+      }
+    ]
+  }
+}

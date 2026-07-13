@@ -1,0 +1,19 @@
+# CI for a coding-loop control-plane target repo. The control plane aggregates
+# GitHub Actions check-runs on the PR head into one CI status (success wins the
+# merge rule only when every check passes), so this workflow — or whatever
+# replaces it — must run on pull requests.
+name: ci
+
+on:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Replace with the project's real build/test commands. An always-green
+      # placeholder is fine for a first live test of the control plane, but a
+      # real project needs real checks here — CI is the merge rule's only
+      # non-agent signal.
+      - run: echo "no tests configured yet"
