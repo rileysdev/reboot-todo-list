@@ -1,0 +1,104 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow-sm);
+  padding: 34px 32px 28px;
+}
+
+.mark {
+  font-size: 26px;
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+
+.kicker {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 30px;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  margin: 6px 0 10px;
+}
+
+.blurb {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin-bottom: 22px;
+}
+
+.field {
+  display: flex;
+  gap: 8px;
+}
+
+.input {
+  flex: 1 1 auto;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-raised);
+  border-radius: 10px;
+  padding: 11px 13px;
+  font-size: 15px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.input::placeholder {
+  color: var(--ink-faint);
+}
+
+.button {
+  flex: 0 0 auto;
+  border: none;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+}
+
+.button:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.note {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--ink-faint);
+}

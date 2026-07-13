@@ -1,0 +1,130 @@
+/* ── Design system ──────────────────────────────────────────────────
+ * Warm "paper" editorial aesthetic: an off-white ground (never pure
+ * white / no purple gradient), an ink-on-paper text scale mixing a
+ * serif display face with a clean text face, and a single restrained
+ * terracotta accent. Theme-aware: light by default, dark when the host
+ * asks for it.
+ */
+
+:root {
+  --paper: #f2eee4;
+  --surface: #fbf9f3;
+  --surface-raised: #ffffff;
+
+  --ink: #211d17;
+  --ink-soft: #6b6357;
+  --ink-faint: #9c9384;
+
+  --line: #e6dfd1;
+  --line-strong: #d7cdba;
+
+  --accent: #bd5138;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(189, 81, 56, 0.1);
+
+  --prio-high: #bd4a30;
+  --prio-medium: #b9791b;
+  --prio-low: #5a8869;
+  --prio-none: #b0a897;
+
+  --check: #5a8869;
+
+  --shadow-sm: 0 1px 2px rgba(41, 33, 20, 0.06);
+  --shadow-row: 0 1px 0 rgba(41, 33, 20, 0.03);
+  --shadow-lift: 0 16px 32px rgba(41, 33, 20, 0.16),
+    0 3px 8px rgba(41, 33, 20, 0.1);
+
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino,
+    "Book Antiqua", Georgia, serif;
+  --font-text: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #17140f;
+    --surface: #211d16;
+    --surface-raised: #282219;
+
+    --ink: #efe9dc;
+    --ink-soft: #a89f8e;
+    --ink-faint: #726a5b;
+
+    --line: #322c22;
+    --line-strong: #40392e;
+
+    --accent: #e07a5f;
+    --accent-ink: #17140f;
+    --accent-soft: rgba(224, 122, 95, 0.14);
+
+    --prio-high: #e07a5f;
+    --prio-medium: #d9a441;
+    --prio-low: #7faf92;
+    --prio-none: #6f695c;
+
+    --check: #7faf92;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-row: 0 1px 0 rgba(0, 0, 0, 0.2);
+    --shadow-lift: 0 18px 36px rgba(0, 0, 0, 0.55),
+      0 3px 10px rgba(0, 0, 0, 0.4);
+  }
+}
+
+[data-theme="dark"] {
+  --paper: #17140f;
+  --surface: #211d16;
+  --surface-raised: #282219;
+
+  --ink: #efe9dc;
+  --ink-soft: #a89f8e;
+  --ink-faint: #726a5b;
+
+  --line: #322c22;
+  --line-strong: #40392e;
+
+  --accent: #e07a5f;
+  --accent-ink: #17140f;
+  --accent-soft: rgba(224, 122, 95, 0.14);
+
+  --prio-high: #e07a5f;
+  --prio-medium: #d9a441;
+  --prio-low: #7faf92;
+  --prio-none: #6f695c;
+
+  --check: #7faf92;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-row: 0 1px 0 rgba(0, 0, 0, 0.2);
+  --shadow-lift: 0 18px 36px rgba(0, 0, 0, 0.55), 0 3px 10px rgba(0, 0, 0, 0.4);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  background: var(--paper);
+}
+
+body {
+  font-family: var(--font-text);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button {
+  font-family: inherit;
+  color: inherit;
+}
+
+input {
+  font-family: inherit;
+}

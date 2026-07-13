@@ -1,0 +1,440 @@
+.page {
+  background: var(--paper);
+  color: var(--ink);
+  padding: 22px 20px 20px;
+  max-width: 640px;
+  margin: 0 auto;
+  min-height: 100%;
+}
+
+.pageDragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.loading {
+  color: var(--ink-faint);
+  font-size: 14px;
+  padding: 40px 0;
+  text-align: center;
+}
+
+/* ── Header ── */
+
+.header {
+  margin-bottom: 18px;
+}
+
+.headTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.kicker {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.count {
+  font-size: 12px;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.title2 {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  cursor: text;
+  color: var(--ink);
+}
+
+.nameInput {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--accent);
+  outline: none;
+  width: 100%;
+  padding: 0 0 2px;
+}
+
+.progress {
+  margin-top: 14px;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* ── List ── */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 11px 12px 11px 6px;
+  box-shadow: var(--shadow-row);
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.18s ease, border-color 0.18s ease, opacity 0.18s ease;
+  will-change: transform;
+}
+
+.rowDragging {
+  background: var(--surface-raised);
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-lift);
+  cursor: grabbing;
+}
+
+.rowDone {
+  opacity: 0.62;
+}
+
+.handle {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 30px;
+  border: none;
+  background: transparent;
+  color: var(--ink-faint);
+  cursor: grab;
+  border-radius: 6px;
+  touch-action: none;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.handle:hover {
+  color: var(--ink-soft);
+  background: var(--accent-soft);
+}
+
+.handle:active {
+  cursor: grabbing;
+}
+
+/* ── Checkbox ── */
+
+.check {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  border: 1.8px solid var(--line-strong);
+  background: var(--surface-raised);
+  color: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.16s ease;
+}
+
+.check:hover {
+  border-color: var(--check);
+}
+
+.checkOn {
+  background: var(--check);
+  border-color: var(--check);
+  color: #fff;
+}
+
+/* ── Body ── */
+
+.body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title {
+  font-size: 15px;
+  line-height: 1.35;
+  color: var(--ink);
+  cursor: text;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowDone .title {
+  text-decoration: line-through;
+  text-decoration-color: var(--ink-faint);
+  color: var(--ink-soft);
+}
+
+.titleInput {
+  font-size: 15px;
+  line-height: 1.35;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid var(--accent);
+  outline: none;
+  padding: 0 0 1px;
+  width: 100%;
+}
+
+.notes {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  cursor: text;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notesInput {
+  margin-top: 4px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  outline: none;
+  padding: 6px 8px;
+  resize: vertical;
+  width: 100%;
+}
+
+/* ── Priority chip ── */
+
+.prio {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 9px 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.prio:hover {
+  border-color: var(--line-strong);
+}
+
+.prioDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--prio-none);
+  flex: 0 0 auto;
+}
+
+.prioLabel {
+  letter-spacing: 0.01em;
+}
+
+.prio[data-level="none"] {
+  padding: 0;
+  width: 24px;
+  justify-content: center;
+}
+
+.prio[data-level="low"] .prioDot,
+.addPrio[data-level="low"] .prioDot {
+  background: var(--prio-low);
+}
+.prio[data-level="medium"] .prioDot,
+.addPrio[data-level="medium"] .prioDot {
+  background: var(--prio-medium);
+}
+.prio[data-level="high"] .prioDot,
+.addPrio[data-level="high"] .prioDot {
+  background: var(--prio-high);
+}
+
+.prio[data-level="low"] {
+  color: var(--prio-low);
+  border-color: color-mix(in srgb, var(--prio-low) 34%, transparent);
+  background: color-mix(in srgb, var(--prio-low) 10%, transparent);
+}
+.prio[data-level="medium"] {
+  color: var(--prio-medium);
+  border-color: color-mix(in srgb, var(--prio-medium) 34%, transparent);
+  background: color-mix(in srgb, var(--prio-medium) 12%, transparent);
+}
+.prio[data-level="high"] {
+  color: var(--prio-high);
+  border-color: color-mix(in srgb, var(--prio-high) 40%, transparent);
+  background: color-mix(in srgb, var(--prio-high) 12%, transparent);
+}
+
+/* ── Row action buttons ── */
+
+.noteBtn,
+.delete {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: var(--ink-faint);
+  border-radius: 7px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.row:hover .noteBtn,
+.row:hover .delete {
+  opacity: 1;
+}
+
+.noteBtn:hover {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.delete:hover {
+  color: var(--prio-high);
+  background: color-mix(in srgb, var(--prio-high) 12%, transparent);
+}
+
+/* ── Empty state ── */
+
+.empty {
+  text-align: center;
+  padding: 44px 20px;
+  color: var(--ink-soft);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+}
+
+.emptyMark {
+  font-size: 22px;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.empty p {
+  font-size: 14px;
+}
+
+.emptySub {
+  color: var(--ink-faint);
+  font-size: 12.5px;
+  margin-top: 2px;
+}
+
+/* ── Add bar ── */
+
+.addBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 6px 6px 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.addBar:focus-within {
+  border-color: var(--line-strong);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.addPrio {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s ease;
+}
+
+.addPrio:hover {
+  border-color: var(--line-strong);
+}
+
+.addInput {
+  flex: 1 1 auto;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 15px;
+  color: var(--ink);
+  padding: 6px 2px;
+}
+
+.addInput::placeholder {
+  color: var(--ink-faint);
+}
+
+.addBtn {
+  flex: 0 0 auto;
+  border: none;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+}
+
+.addBtn:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.addBtn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.addBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

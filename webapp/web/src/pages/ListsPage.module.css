@@ -1,0 +1,222 @@
+.page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 30px 20px 40px;
+}
+
+.header {
+  margin-bottom: 18px;
+}
+
+.kicker {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  margin-top: 2px;
+}
+
+.sub {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.addBar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 22px;
+  padding: 6px 6px 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.addBar:focus-within {
+  border-color: var(--line-strong);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.addInput {
+  flex: 1 1 auto;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 15px;
+  color: var(--ink);
+  padding: 7px 2px;
+}
+
+.addInput::placeholder {
+  color: var(--ink-faint);
+}
+
+.addBtn {
+  flex: 0 0 auto;
+  border: none;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+}
+
+.addBtn:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.addBtn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.addBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.loading {
+  color: var(--ink-faint);
+  font-size: 14px;
+  padding: 40px 0;
+  text-align: center;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px 16px 14px;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+  border-color: var(--line-strong);
+}
+
+.cardTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.cardName {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.done {
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--check);
+}
+
+.cardCount {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+
+.big {
+  font-size: 27px;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.of {
+  font-size: 15px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.tasksWord {
+  font-size: 12px;
+  color: var(--ink-faint);
+  margin-left: 2px;
+}
+
+.bar {
+  height: 5px;
+  border-radius: 5px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 5px;
+  background: var(--accent);
+  transition: width 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.barDone {
+  background: var(--check);
+}
+
+.pct {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--ink-faint);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.empty {
+  text-align: center;
+  padding: 52px 20px;
+  color: var(--ink-soft);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+}
+
+.emptyMark {
+  font-size: 24px;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+
+.empty p {
+  font-size: 14px;
+}
+
+.emptySub {
+  color: var(--ink-faint);
+  font-size: 12.5px;
+  margin-top: 3px;
+}
