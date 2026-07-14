@@ -343,9 +343,13 @@
   transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
 }
 
+/* :focus-within keeps these reachable for keyboard users, who never hover. */
 .row:hover .subtaskAddBtn,
+.row:focus-within .subtaskAddBtn,
 .row:hover .noteBtn,
-.row:hover .delete {
+.row:focus-within .noteBtn,
+.row:hover .delete,
+.row:focus-within .delete {
   opacity: 1;
 }
 
@@ -542,7 +546,8 @@
   transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
 }
 
-.subtaskRow:hover .subtaskDelete {
+.subtaskRow:hover .subtaskDelete,
+.subtaskRow:focus-within .subtaskDelete {
   opacity: 1;
 }
 
