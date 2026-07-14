@@ -1,6 +1,6 @@
 """Run the harness Envoy-free where Envoy can't exist.
 
-This app mounts MCP/HTTP routes, so `reboot.aio.tests.Reboot.up` boots a
+This app mounts HTTP routes, so `reboot.aio.tests.Reboot.up` boots a
 local Envoy proxy by default (auto-enabled whenever the application has HTTP
 routes or mounts). Envoy arrives as a PATH executable or the envoyproxy
 Docker image — a Claude Code Routine sandbox has neither, and its network
