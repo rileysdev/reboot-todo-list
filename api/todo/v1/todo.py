@@ -39,6 +39,25 @@ class OrderMismatchError(Model):
     got_count: int = Field(tag=2, default=0)
 
 
+class UnknownSubtaskError(Model):
+    """Raised when a subtask ID doesn't belong to the task it was sent to."""
+
+    subtask_id: str = Field(tag=1, default="")
+
+
+class Subtask(Model):
+    """One subtask of a task: a title and a checkbox, one level deep.
+
+    Subtasks live inside their parent task's state (not as their own
+    actors) so the completion cascade between a task and its subtasks
+    is a single-actor write, atomic by construction.
+    """
+
+    id: str = Field(tag=1, default="")
+    title: str = Field(tag=2, default="")
+    completed: bool = Field(tag=3, default=False)
+
+
 class TaskView(Model):
     """A fully hydrated task, as the board UI renders it."""
 
@@ -47,6 +66,7 @@ class TaskView(Model):
     notes: str = Field(tag=3, default="")
     completed: bool = Field(tag=4, default=False)
     priority: str = Field(tag=5, default="")
+    subtasks: list[Subtask] = Field(tag=6, default_factory=list)
 
 
 class ListSummary(Model):
@@ -137,6 +157,7 @@ class TaskState(Model):
     completed: bool = Field(tag=3, default=False)
     priority: str = Field(tag=4, default="")
     owner_user_id: str = Field(tag=5, default="")
+    subtasks: list[Subtask] = Field(tag=6, default_factory=list)
 
 
 class CreateTaskRequest(Model):
@@ -150,6 +171,7 @@ class TaskResponse(Model):
     notes: str = Field(tag=2, default="")
     completed: bool = Field(tag=3, default=False)
     priority: str = Field(tag=4, default="")
+    subtasks: list[Subtask] = Field(tag=5, default_factory=list)
 
 
 class SetCompletedRequest(Model):
@@ -160,6 +182,23 @@ class EditRequest(Model):
     title: str = Field(tag=1, default="")
     notes: str = Field(tag=2, default="")
     priority: str = Field(tag=3, default="")
+
+
+class AddSubtaskRequest(Model):
+    title: str = Field(tag=1, default="")
+
+
+class AddSubtaskResponse(Model):
+    subtask_id: str = Field(tag=1, default="")
+
+
+class SetSubtaskCompletedRequest(Model):
+    subtask_id: str = Field(tag=1, default="")
+    completed: bool = Field(tag=2, default=False)
+
+
+class RemoveSubtaskRequest(Model):
+    subtask_id: str = Field(tag=1, default="")
 
 
 # ─── API ─────────────────────────────────────────────────────────────
@@ -283,7 +322,12 @@ api = API(
             set_completed=Writer(
                 request=SetCompletedRequest,
                 response=None,
-                description="Mark this task complete or incomplete.",
+                description=(
+                    "Mark this task complete or incomplete. Cascades to "
+                    "subtasks: completing the task completes every "
+                    "subtask, and un-completing it un-completes every "
+                    "subtask."
+                ),
                 mcp=Tool(),
             ),
             edit=Writer(
@@ -294,6 +338,33 @@ api = API(
                     "Edit this task's title, notes, and priority "
                     "('none', 'low', 'medium', 'high')."
                 ),
+                mcp=Tool(),
+            ),
+            add_subtask=Writer(
+                request=AddSubtaskRequest,
+                response=AddSubtaskResponse,
+                description=(
+                    "Add a subtask to this task. Returns the new "
+                    "subtask's ID. The new subtask starts incomplete, so "
+                    "a completed task becomes incomplete again."
+                ),
+                mcp=Tool(),
+            ),
+            set_subtask_completed=Writer(
+                request=SetSubtaskCompletedRequest,
+                response=None,
+                errors=[UnknownSubtaskError],
+                description=(
+                    "Mark one subtask complete or incomplete. The task "
+                    "itself follows its subtasks: it becomes complete "
+                    "exactly when every subtask is complete."
+                ),
+                mcp=Tool(),
+            ),
+            remove_subtask=Writer(
+                request=RemoveSubtaskRequest,
+                response=None,
+                description="Remove a subtask from this task.",
                 mcp=Tool(),
             ),
         ),

@@ -43,6 +43,25 @@ class OrderMismatchError(Model):
     got_count: int = Field(tag=2, default=0)
 
 
+class UnknownSubtaskError(Model):
+    """Raised when a subtask ID doesn't belong to the task it was sent to."""
+
+    subtask_id: str = Field(tag=1, default="")
+
+
+class Subtask(Model):
+    """One subtask of a task: a title and a checkbox, one level deep.
+
+    Subtasks live inside their parent task's state (not as their own
+    actors) so the completion cascade between a task and its subtasks
+    is a single-actor write, atomic by construction.
+    """
+
+    id: str = Field(tag=1, default="")
+    title: str = Field(tag=2, default="")
+    completed: bool = Field(tag=3, default=False)
+
+
 class TaskView(Model):
     """A fully hydrated task, as the board renders it."""
 
@@ -51,6 +70,7 @@ class TaskView(Model):
     notes: str = Field(tag=3, default="")
     completed: bool = Field(tag=4, default=False)
     priority: str = Field(tag=5, default="")
+    subtasks: list[Subtask] = Field(tag=6, default_factory=list)
 
 
 class ListSummary(Model):
@@ -133,6 +153,7 @@ class TaskState(Model):
     notes: str = Field(tag=2, default="")
     completed: bool = Field(tag=3, default=False)
     priority: str = Field(tag=4, default="")
+    subtasks: list[Subtask] = Field(tag=5, default_factory=list)
 
 
 class CreateTaskRequest(Model):
@@ -145,6 +166,7 @@ class TaskResponse(Model):
     notes: str = Field(tag=2, default="")
     completed: bool = Field(tag=3, default=False)
     priority: str = Field(tag=4, default="")
+    subtasks: list[Subtask] = Field(tag=5, default_factory=list)
 
 
 class SetCompletedRequest(Model):
@@ -155,6 +177,23 @@ class EditRequest(Model):
     title: str = Field(tag=1, default="")
     notes: str = Field(tag=2, default="")
     priority: str = Field(tag=3, default="")
+
+
+class AddSubtaskRequest(Model):
+    title: str = Field(tag=1, default="")
+
+
+class AddSubtaskResponse(Model):
+    subtask_id: str = Field(tag=1, default="")
+
+
+class SetSubtaskCompletedRequest(Model):
+    subtask_id: str = Field(tag=1, default="")
+    completed: bool = Field(tag=2, default=False)
+
+
+class RemoveSubtaskRequest(Model):
+    subtask_id: str = Field(tag=1, default="")
 
 
 # ─── API ─────────────────────────────────────────────────────────────
@@ -250,6 +289,22 @@ api = API(
                 request=EditRequest,
                 response=None,
                 errors=[InvalidPriorityError],
+                mcp=None,
+            ),
+            add_subtask=Writer(
+                request=AddSubtaskRequest,
+                response=AddSubtaskResponse,
+                mcp=None,
+            ),
+            set_subtask_completed=Writer(
+                request=SetSubtaskCompletedRequest,
+                response=None,
+                errors=[UnknownSubtaskError],
+                mcp=None,
+            ),
+            remove_subtask=Writer(
+                request=RemoveSubtaskRequest,
+                response=None,
                 mcp=None,
             ),
         ),

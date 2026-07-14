@@ -10,7 +10,11 @@ from reboot.aio.auth.oauth_providers import Anonymous
 from reboot.aio.tests import OAuthProviderForTest, Reboot
 from servicers.todo import TaskServicer, TodoListServicer, UserServicer
 
-from todo.v1.todo import InvalidPriorityError, OrderMismatchError
+from todo.v1.todo import (
+    InvalidPriorityError,
+    OrderMismatchError,
+    UnknownSubtaskError,
+)
 from todo.v1.todo_rbt import Task, TodoList, User
 
 
@@ -23,7 +27,13 @@ class TestTodo(unittest.IsolatedAsyncioTestCase):
             Application(
                 servicers=[UserServicer, TodoListServicer, TaskServicer],
                 oauth=OAuthProviderForTest(Anonymous()),
-            )
+            ),
+            # These tests exercise actor methods over gRPC only; skipping
+            # the local Envoy proxy (one server, since multi-server
+            # routing needs Envoy) lets them run where Docker (or an
+            # `envoy` executable) is unavailable.
+            local_envoy=False,
+            servers=1,
         )
         self.user_id = "alice"
         self.context = self.rbt.create_external_context(
@@ -167,6 +177,138 @@ class TestTodo(unittest.IsolatedAsyncioTestCase):
                 self.context, title="X", notes="", priority="soon"
             )
         self.assertIsInstance(caught.exception.error, InvalidPriorityError)
+
+    async def _create_task_with_subtasks(
+        self, subtask_titles: list[str]
+    ) -> tuple[str, list[str]]:
+        """A task on a fresh list, with one subtask per title given."""
+        list_id = await self._create_list()
+        added = await TodoList.ref(list_id).add_task(
+            self.context, title="Parent"
+        )
+        subtask_ids = []
+        for title in subtask_titles:
+            response = await Task.ref(added.task_id).add_subtask(
+                self.context, title=title
+            )
+            subtask_ids.append(response.subtask_id)
+        return added.task_id, subtask_ids
+
+    async def test_subtasks_appear_under_their_task_in_order(self) -> None:
+        task_id, subtask_ids = await self._create_task_with_subtasks(
+            ["First", "Second"]
+        )
+
+        task = await Task.ref(task_id).get(self.context)
+        self.assertEqual([s.title for s in task.subtasks], ["First", "Second"])
+        self.assertEqual([s.id for s in task.subtasks], subtask_ids)
+        self.assertEqual([s.completed for s in task.subtasks], [False, False])
+
+    async def test_completing_a_task_completes_its_subtasks(self) -> None:
+        task_id, _ = await self._create_task_with_subtasks(["A", "B"])
+
+        await Task.ref(task_id).set_completed(self.context, completed=True)
+
+        task = await Task.ref(task_id).get(self.context)
+        self.assertTrue(task.completed)
+        self.assertEqual([s.completed for s in task.subtasks], [True, True])
+
+    async def test_uncompleting_a_task_uncompletes_its_subtasks(self) -> None:
+        task_id, _ = await self._create_task_with_subtasks(["A", "B"])
+        await Task.ref(task_id).set_completed(self.context, completed=True)
+
+        await Task.ref(task_id).set_completed(self.context, completed=False)
+
+        task = await Task.ref(task_id).get(self.context)
+        self.assertFalse(task.completed)
+        self.assertEqual([s.completed for s in task.subtasks], [False, False])
+
+    async def test_completing_every_subtask_completes_the_task(self) -> None:
+        task_id, subtask_ids = await self._create_task_with_subtasks(["A", "B"])
+
+        await Task.ref(task_id).set_subtask_completed(
+            self.context, subtask_id=subtask_ids[0], completed=True
+        )
+        task = await Task.ref(task_id).get(self.context)
+        self.assertFalse(task.completed)
+
+        await Task.ref(task_id).set_subtask_completed(
+            self.context, subtask_id=subtask_ids[1], completed=True
+        )
+        task = await Task.ref(task_id).get(self.context)
+        self.assertTrue(task.completed)
+
+    async def test_uncompleting_a_subtask_uncompletes_the_task(self) -> None:
+        task_id, subtask_ids = await self._create_task_with_subtasks(["A", "B"])
+        await Task.ref(task_id).set_completed(self.context, completed=True)
+
+        await Task.ref(task_id).set_subtask_completed(
+            self.context, subtask_id=subtask_ids[0], completed=False
+        )
+
+        task = await Task.ref(task_id).get(self.context)
+        self.assertFalse(task.completed)
+        self.assertEqual([s.completed for s in task.subtasks], [False, True])
+
+    async def test_adding_a_subtask_to_a_completed_task_uncompletes_it(
+        self,
+    ) -> None:
+        task_id, _ = await self._create_task_with_subtasks(["A"])
+        await Task.ref(task_id).set_completed(self.context, completed=True)
+
+        await Task.ref(task_id).add_subtask(self.context, title="B")
+
+        task = await Task.ref(task_id).get(self.context)
+        self.assertFalse(task.completed)
+        self.assertEqual([s.completed for s in task.subtasks], [True, False])
+
+    async def test_removing_the_last_incomplete_subtask_completes_the_task(
+        self,
+    ) -> None:
+        task_id, subtask_ids = await self._create_task_with_subtasks(["A", "B"])
+        await Task.ref(task_id).set_subtask_completed(
+            self.context, subtask_id=subtask_ids[0], completed=True
+        )
+
+        await Task.ref(task_id).remove_subtask(
+            self.context, subtask_id=subtask_ids[1]
+        )
+
+        task = await Task.ref(task_id).get(self.context)
+        self.assertTrue(task.completed)
+        self.assertEqual([s.id for s in task.subtasks], [subtask_ids[0]])
+
+    async def test_removing_every_subtask_keeps_the_tasks_own_state(
+        self,
+    ) -> None:
+        task_id, subtask_ids = await self._create_task_with_subtasks(["A"])
+
+        await Task.ref(task_id).remove_subtask(
+            self.context, subtask_id=subtask_ids[0]
+        )
+
+        task = await Task.ref(task_id).get(self.context)
+        self.assertFalse(task.completed)
+        self.assertEqual(list(task.subtasks), [])
+
+    async def test_completing_an_unknown_subtask_is_rejected(self) -> None:
+        task_id, _ = await self._create_task_with_subtasks(["A"])
+
+        with self.assertRaises(Task.SetSubtaskCompletedAborted) as caught:
+            await Task.ref(task_id).set_subtask_completed(
+                self.context, subtask_id="bogus-id", completed=True
+            )
+        self.assertIsInstance(caught.exception.error, UnknownSubtaskError)
+
+    async def test_subtasks_ride_along_in_the_list_view(self) -> None:
+        list_id = await self._create_list()
+        added = await TodoList.ref(list_id).add_task(
+            self.context, title="Parent"
+        )
+        await Task.ref(added.task_id).add_subtask(self.context, title="Child")
+
+        view = await TodoList.ref(list_id).get(self.context)
+        self.assertEqual([s.title for s in view.tasks[0].subtasks], ["Child"])
 
     async def test_another_user_cannot_access_my_list(self) -> None:
         list_id = await self._create_list()
