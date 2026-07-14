@@ -1,0 +1,37 @@
+# Find API definitions in 'api/'.
+generate api/
+
+# Tell `rbt generate` where to put generated files.
+generate --python=backend/api/
+
+# Generate the TypeScript web client + React bindings into the SPA.
+generate --web=web/src/api
+generate --react=web/src/api
+
+# Watch if any source files are modified.
+dev run --watch=backend/**/*.py
+
+# Tell `rbt` that this is a Python application.
+dev run --python
+
+# Save state between restarts.
+dev run --application-name=reboot-todo-list-webapp
+
+# Serve on a dedicated port so this coexists with the MCP chat app
+# (which uses the default 9991).
+dev run --port=9992
+
+# Load secrets from a git-ignored env file.
+dev run --env-file=.env
+
+# Run the application!
+dev run --application=backend/src/main.py
+
+# When expunging, expunge that state we've saved.
+dev expunge --application-name=reboot-todo-list-webapp
+
+# Production config used by `rbt serve run`.
+serve run --python
+serve run --application=backend/src/main.py
+serve run --application-name=reboot-todo-list-webapp
+serve run --tls=external
