@@ -7,7 +7,9 @@ Three actors:
 - `TodoList` — one named list. Owns its tasks' order (`task_ids`), so
   reordering is a single cheap rewrite of that ordered list.
 - `Task` — one todo item. Its own actor so a checkbox toggle or an edit
-  touches only that task, not the whole list.
+  touches only that task, not the whole list. A task may carry subtasks,
+  stored inside the task's own state (not as separate actors) so the
+  completion cascade between a task and its subtasks is one atomic write.
 """
 
 from reboot.api import (
@@ -39,6 +41,20 @@ class OrderMismatchError(Model):
     got_count: int = Field(tag=2, default=0)
 
 
+class UnknownSubtaskError(Model):
+    """Raised when a subtask ID is not one of the task's subtasks."""
+
+    subtask_id: str = Field(tag=1, default="")
+
+
+class Subtask(Model):
+    """One subtask of a task: a single-level checklist entry."""
+
+    id: str = Field(tag=1, default="")
+    title: str = Field(tag=2, default="")
+    completed: bool = Field(tag=3, default=False)
+
+
 class TaskView(Model):
     """A fully hydrated task, as the board UI renders it."""
 
@@ -47,6 +63,7 @@ class TaskView(Model):
     notes: str = Field(tag=3, default="")
     completed: bool = Field(tag=4, default=False)
     priority: str = Field(tag=5, default="")
+    subtasks: list[Subtask] = Field(tag=6, default_factory=list)
 
 
 class ListSummary(Model):
@@ -137,6 +154,7 @@ class TaskState(Model):
     completed: bool = Field(tag=3, default=False)
     priority: str = Field(tag=4, default="")
     owner_user_id: str = Field(tag=5, default="")
+    subtasks: list[Subtask] = Field(tag=6, default_factory=list)
 
 
 class CreateTaskRequest(Model):
@@ -150,10 +168,28 @@ class TaskResponse(Model):
     notes: str = Field(tag=2, default="")
     completed: bool = Field(tag=3, default=False)
     priority: str = Field(tag=4, default="")
+    subtasks: list[Subtask] = Field(tag=5, default_factory=list)
 
 
 class SetCompletedRequest(Model):
     completed: bool = Field(tag=1, default=False)
+
+
+class AddSubtaskRequest(Model):
+    title: str = Field(tag=1, default="")
+
+
+class AddSubtaskResponse(Model):
+    subtask_id: str = Field(tag=1, default="")
+
+
+class SetSubtaskCompletedRequest(Model):
+    subtask_id: str = Field(tag=1, default="")
+    completed: bool = Field(tag=2, default=False)
+
+
+class RemoveSubtaskRequest(Model):
+    subtask_id: str = Field(tag=1, default="")
 
 
 class EditRequest(Model):
@@ -283,7 +319,42 @@ api = API(
             set_completed=Writer(
                 request=SetCompletedRequest,
                 response=None,
-                description="Mark this task complete or incomplete.",
+                description=(
+                    "Mark this task complete or incomplete. All of the "
+                    "task's subtasks follow it."
+                ),
+                mcp=Tool(),
+            ),
+            add_subtask=Writer(
+                request=AddSubtaskRequest,
+                response=AddSubtaskResponse,
+                description=(
+                    "Add a subtask under this task. A new subtask starts "
+                    "incomplete, so a completed task becomes incomplete "
+                    "again. Returns the new subtask's ID."
+                ),
+                mcp=Tool(),
+            ),
+            set_subtask_completed=Writer(
+                request=SetSubtaskCompletedRequest,
+                response=None,
+                errors=[UnknownSubtaskError],
+                description=(
+                    "Mark one subtask complete or incomplete. The task "
+                    "follows its subtasks: completing the last incomplete "
+                    "subtask completes the task, and marking any subtask "
+                    "incomplete marks the task incomplete."
+                ),
+                mcp=Tool(),
+            ),
+            remove_subtask=Writer(
+                request=RemoveSubtaskRequest,
+                response=None,
+                description=(
+                    "Remove a subtask from this task. The task's "
+                    "completion is recomputed from the subtasks that "
+                    "remain, if any."
+                ),
                 mcp=Tool(),
             ),
             edit=Writer(
