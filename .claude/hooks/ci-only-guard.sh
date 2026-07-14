@@ -15,7 +15,10 @@ COMMAND=$(printf '%s' "$INPUT" | python3 -c '
 import json, sys
 try:
     print(json.load(sys.stdin).get("tool_input", {}).get("command", ""))
-except Exception:
+except (json.JSONDecodeError, AttributeError):
+    # Malformed payload (invalid JSON, or a non-dict where the hook contract
+    # promises a dict) must fail open: a broken hook may never break the
+    # session, so an unparseable payload means "no command" and exit 0.
     pass
 ') || exit 0
 
