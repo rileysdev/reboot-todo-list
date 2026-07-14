@@ -1,19 +1,43 @@
-# CI for a coding-loop control-plane target repo. The control plane aggregates
-# GitHub Actions check-runs on the PR head into one CI status (success wins the
-# merge rule only when every check passes), so this workflow — or whatever
-# replaces it — must run on pull requests.
+# CI for a coding-loop target repo. The control plane aggregates GitHub
+# Actions check-runs on the PR head into one CI status (success wins the
+# merge rule only when every check passes), and the review phase refuses to
+# act until CI concludes — so this workflow must run on every pull request.
+#
+# The backend suites MUST run here even though sessions also run them
+# Envoy-free in the sandbox (backend/tests/conftest.py): CI has Docker, so
+# it exercises the Envoy-fronted harness path too, and it is the merge
+# authority.
 name: ci
 
 on:
   pull_request:
 
 jobs:
-  test:
+  chat-app:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # Replace with the project's real build/test commands. An always-green
-      # placeholder is fine for a first live test of the control plane, but a
-      # real project needs real checks here — CI is the merge rule's only
-      # non-agent signal.
-      - run: echo "no tests configured yet"
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - run: uv run rbt generate
+      - run: PYTHONPATH=backend/src:backend/api uv run pytest backend/tests -q
+      - run: npm ci
+        working-directory: web
+      - run: npm run build
+        working-directory: web
+
+  webapp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+        working-directory: webapp
+      - run: uv run rbt generate
+        working-directory: webapp
+      - run: PYTHONPATH=backend/src:backend/api uv run pytest backend/tests -q
+        working-directory: webapp
+      - run: npm ci
+        working-directory: webapp/web
+      - run: npm run build
+        working-directory: webapp/web

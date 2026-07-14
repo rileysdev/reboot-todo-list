@@ -18,8 +18,24 @@ instructions, the turn-budget hook, rulesets-as-code, and the merge settings.
   clean, converge when the turn budget warns, the PR is the only exit, never
   touch the loop's own machinery. Projects append their own build conventions
   below it.
-- **`.claude/settings.json`** — two `PostToolUse` hooks for the Routine's
-  Claude Code sessions.
+- **`.claude/settings.json`** — pins every session in the repo to the Fable
+  model at `xhigh` effort (the highest level the `effortLevel` setting
+  accepts — `ultracode` is session-only, per the model-config documentation),
+  and wires the hooks for the Routine's Claude Code sessions: a `PreToolUse`
+  guard plus two `PostToolUse` hooks.
+  Caveat: a Routine uses the model chosen in its creation form on every run
+  (per the routines documentation), so these keys govern headless and human
+  sessions; whether a Routine respects the repo's `effortLevel` is
+  undocumented.
+- **`.claude/hooks/ci-only-guard.sh`** — deterministically blocks Docker
+  invocations and Envoy downloads (`exit 2` on a `PreToolUse` match). The
+  Routine sandbox has neither Docker nor network access to the Envoy release
+  hosts; this hook stops a session from burning turns bootstrapping either.
+  Pair it with a conftest guard in the project that forces the Reboot test
+  harness to run without its Envoy proxy when no Envoy source is available
+  (the suites run in full over gRPC — see reboot-todo-list's
+  `backend/tests/conftest.py` for the pattern); CI, which has Docker, also
+  exercises the Envoy-fronted path and is the merge authority.
 - **`.claude/hooks/heartbeat.sh`** — POSTs `{"branch", "last_seen_ms"}` to the
   control plane's `/heartbeat` route (async, so it never blocks a tool call).
   Fail-open (a heartbeat is advisory; nothing may ever break the session) and
@@ -42,7 +58,9 @@ instructions, the turn-budget hook, rulesets-as-code, and the merge settings.
 - **`.github/workflows/ci.yml`** — a placeholder pull-request workflow. The
   control plane's merge rule aggregates GitHub Actions check-runs on the PR
   head, so every project must run *something* on PRs; replace the placeholder
-  echo with the project's real checks.
+  echo with the project's real checks. The Envoy-dependent suites MUST run
+  here: sessions skip them in the sandbox (see the CI-only guard above), so a
+  placeholder CI would merge them untested.
 - **`rulesets/*.json`** — rulesets-as-code, applied per repo by
   `setup-github.sh` (a ruleset is a repository setting, which "Use this
   template" does not copy).
@@ -56,7 +74,10 @@ settings: squash merging allowed (the control plane merges by squash) and
 without this they accumulate forever). Requires `gh` with admin access.
 
 Then **onboard the repo in the control-plane dashboard** — task queue, project
-brief, optionally the Routine endpoint/token.
+brief, optionally the Routine endpoint/API key. When creating the Routine,
+**select Fable in its model selector**: a Routine runs on the model chosen at
+creation, not the repo's `.claude/settings.json` (which covers headless and
+human sessions).
 
 ## Checklist / cautions
 

@@ -2,6 +2,19 @@
   "model": "fable",
   "effortLevel": "xhigh",
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/ci-only-guard.sh\"",
+            "timeout": 10,
+            "statusMessage": "Checking the CI-only test policy"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "hooks": [
