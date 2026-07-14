@@ -13,7 +13,11 @@ from reboot.aio.applications import Application
 from reboot.aio.tests import Reboot
 from servicers.todo import AccountServicer, TaskServicer, TodoListServicer
 
-from todo.v1.todo import InvalidPriorityError, OrderMismatchError
+from todo.v1.todo import (
+    InvalidPriorityError,
+    OrderMismatchError,
+    UnknownSubtaskError,
+)
 from todo.v1.todo_rbt import Account, Task, TodoList
 
 
@@ -165,3 +169,142 @@ class TestTodo(unittest.IsolatedAsyncioTestCase):
                 self.context, title="X", notes="", priority="soon"
             )
         self.assertIsInstance(caught.exception.error, InvalidPriorityError)
+
+    async def _create_task_with_subtasks(
+        self, subtask_titles: list[str]
+    ) -> tuple[str, list[str]]:
+        """A task on a fresh list, with one subtask per given title."""
+        list_id = await self._create_list()
+        added = await TodoList.ref(list_id).add_task(
+            self.context, title="Parent"
+        )
+        subtask_ids = []
+        for title in subtask_titles:
+            response = await Task.ref(added.task_id).add_subtask(
+                self.context, title=title
+            )
+            subtask_ids.append(response.subtask_id)
+        return added.task_id, subtask_ids
+
+    async def test_subtasks_appear_under_their_task_in_the_list_view(
+        self,
+    ) -> None:
+        list_id = await self._create_list()
+        added = await TodoList.ref(list_id).add_task(
+            self.context, title="Parent"
+        )
+        await Task.ref(added.task_id).add_subtask(self.context, title="One")
+        await Task.ref(added.task_id).add_subtask(self.context, title="Two")
+
+        view = await TodoList.ref(list_id).get(self.context)
+        self.assertEqual(
+            [subtask.title for subtask in view.tasks[0].subtasks],
+            ["One", "Two"],
+        )
+        self.assertFalse(
+            any(subtask.completed for subtask in view.tasks[0].subtasks)
+        )
+
+    async def test_completing_a_task_completes_its_subtasks(self) -> None:
+        task_id, _ = await self._create_task_with_subtasks(["One", "Two"])
+
+        await Task.ref(task_id).set_completed(self.context, completed=True)
+
+        task = await Task.ref(task_id).get(self.context)
+        self.assertTrue(task.completed)
+        self.assertTrue(all(subtask.completed for subtask in task.subtasks))
+
+    async def test_unchecking_a_task_unchecks_its_subtasks(self) -> None:
+        task_id, _ = await self._create_task_with_subtasks(["One", "Two"])
+        await Task.ref(task_id).set_completed(self.context, completed=True)
+
+        await Task.ref(task_id).set_completed(self.context, completed=False)
+
+        task = await Task.ref(task_id).get(self.context)
+        self.assertFalse(task.completed)
+        self.assertFalse(any(subtask.completed for subtask in task.subtasks))
+
+    async def test_completing_every_subtask_completes_the_task(self) -> None:
+        task_id, subtask_ids = await self._create_task_with_subtasks(
+            ["One", "Two"]
+        )
+
+        await Task.ref(task_id).set_subtask_completed(
+            self.context, subtask_id=subtask_ids[0], completed=True
+        )
+        task = await Task.ref(task_id).get(self.context)
+        self.assertFalse(task.completed)
+
+        await Task.ref(task_id).set_subtask_completed(
+            self.context, subtask_id=subtask_ids[1], completed=True
+        )
+        task = await Task.ref(task_id).get(self.context)
+        self.assertTrue(task.completed)
+
+    async def test_unchecking_a_subtask_unchecks_the_task(self) -> None:
+        task_id, subtask_ids = await self._create_task_with_subtasks(
+            ["One", "Two"]
+        )
+        await Task.ref(task_id).set_completed(self.context, completed=True)
+
+        await Task.ref(task_id).set_subtask_completed(
+            self.context, subtask_id=subtask_ids[0], completed=False
+        )
+
+        task = await Task.ref(task_id).get(self.context)
+        self.assertFalse(task.completed)
+        self.assertFalse(task.subtasks[0].completed)
+        self.assertTrue(task.subtasks[1].completed)
+
+    async def test_adding_a_subtask_to_a_completed_task_unchecks_it(
+        self,
+    ) -> None:
+        task_id, _ = await self._create_task_with_subtasks(["One"])
+        await Task.ref(task_id).set_completed(self.context, completed=True)
+
+        await Task.ref(task_id).add_subtask(self.context, title="Two")
+
+        task = await Task.ref(task_id).get(self.context)
+        self.assertFalse(task.completed)
+        self.assertTrue(task.subtasks[0].completed)
+        self.assertFalse(task.subtasks[1].completed)
+
+    async def test_toggling_an_unknown_subtask_is_rejected(self) -> None:
+        task_id, _ = await self._create_task_with_subtasks(["One"])
+
+        with self.assertRaises(Task.SetSubtaskCompletedAborted) as caught:
+            await Task.ref(task_id).set_subtask_completed(
+                self.context, subtask_id="bogus-id", completed=True
+            )
+        self.assertIsInstance(caught.exception.error, UnknownSubtaskError)
+
+    async def test_removing_the_last_incomplete_subtask_completes_the_task(
+        self,
+    ) -> None:
+        task_id, subtask_ids = await self._create_task_with_subtasks(
+            ["Done", "Pending"]
+        )
+        await Task.ref(task_id).set_subtask_completed(
+            self.context, subtask_id=subtask_ids[0], completed=True
+        )
+
+        await Task.ref(task_id).remove_subtask(
+            self.context, subtask_id=subtask_ids[1]
+        )
+
+        task = await Task.ref(task_id).get(self.context)
+        self.assertEqual([subtask.title for subtask in task.subtasks], ["Done"])
+        self.assertTrue(task.completed)
+
+    async def test_removing_the_only_subtask_keeps_the_task_state(
+        self,
+    ) -> None:
+        task_id, subtask_ids = await self._create_task_with_subtasks(["Only"])
+
+        await Task.ref(task_id).remove_subtask(
+            self.context, subtask_id=subtask_ids[0]
+        )
+
+        task = await Task.ref(task_id).get(self.context)
+        self.assertEqual(len(task.subtasks), 0)
+        self.assertFalse(task.completed)

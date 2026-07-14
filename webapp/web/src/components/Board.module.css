@@ -115,6 +115,8 @@
 
 .row {
   display: flex;
+  /* Subtasks render as a full-width child that wraps below the task. */
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   background: var(--surface);
@@ -323,6 +325,7 @@
 
 /* ── Row action buttons ── */
 
+.subtaskAddBtn,
 .noteBtn,
 .delete {
   flex: 0 0 auto;
@@ -340,11 +343,17 @@
   transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
 }
 
+/* :focus-within keeps these reachable for keyboard users, who never hover. */
+.row:hover .subtaskAddBtn,
+.row:focus-within .subtaskAddBtn,
 .row:hover .noteBtn,
-.row:hover .delete {
+.row:focus-within .noteBtn,
+.row:hover .delete,
+.row:focus-within .delete {
   opacity: 1;
 }
 
+.subtaskAddBtn:hover,
 .noteBtn:hover {
   color: var(--accent);
   background: var(--accent-soft);
@@ -457,4 +466,109 @@
 .addBtn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* ── Subtasks ── */
+
+.subtaskList {
+  /* Full flex line of the wrapping .row, indented under the task title. */
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-left: 38px;
+  padding-top: 7px;
+  border-top: 1px dashed var(--line);
+}
+
+.subtaskRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.subtaskCheck {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  border-radius: 5px;
+  border: 1.6px solid var(--line-strong);
+  background: var(--surface-raised);
+  color: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.16s ease;
+}
+
+.subtaskCheck:hover {
+  border-color: var(--check);
+}
+
+.subtaskCheckGhost {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+}
+
+.subtaskTitle {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13.5px;
+  line-height: 1.35;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subtaskDone .subtaskTitle {
+  text-decoration: line-through;
+  text-decoration-color: var(--ink-faint);
+  color: var(--ink-soft);
+}
+
+.subtaskDelete {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: var(--ink-faint);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.subtaskRow:hover .subtaskDelete,
+.subtaskRow:focus-within .subtaskDelete {
+  opacity: 1;
+}
+
+.subtaskDelete:hover {
+  color: var(--prio-high);
+  background: color-mix(in srgb, var(--prio-high) 12%, transparent);
+}
+
+.subtaskInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed var(--line-strong);
+  padding: 2px 0;
+  outline: none;
+}
+
+.subtaskInput::placeholder {
+  color: var(--ink-faint);
 }

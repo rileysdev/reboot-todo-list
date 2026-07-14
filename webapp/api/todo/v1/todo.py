@@ -10,7 +10,9 @@ Three actors:
 - `TodoList` — one named list. Owns its tasks' order (`task_ids`) so a
   drag reorder is a single cheap rewrite.
 - `Task` — one todo item; its own actor so a checkbox toggle or edit
-  touches only that task.
+  touches only that task. A task may carry subtasks, stored inside the
+  task's own state (not as separate actors) so the completion cascade
+  between a task and its subtasks is one atomic write.
 
 No `mcp=` / `UI()` here — this API is consumed only by the generated
 TypeScript React client.
@@ -43,6 +45,20 @@ class OrderMismatchError(Model):
     got_count: int = Field(tag=2, default=0)
 
 
+class UnknownSubtaskError(Model):
+    """Raised when a subtask ID is not one of the task's subtasks."""
+
+    subtask_id: str = Field(tag=1, default="")
+
+
+class Subtask(Model):
+    """One subtask of a task: a single-level checklist entry."""
+
+    id: str = Field(tag=1, default="")
+    title: str = Field(tag=2, default="")
+    completed: bool = Field(tag=3, default=False)
+
+
 class TaskView(Model):
     """A fully hydrated task, as the board renders it."""
 
@@ -51,6 +67,7 @@ class TaskView(Model):
     notes: str = Field(tag=3, default="")
     completed: bool = Field(tag=4, default=False)
     priority: str = Field(tag=5, default="")
+    subtasks: list[Subtask] = Field(tag=6, default_factory=list)
 
 
 class ListSummary(Model):
@@ -133,6 +150,7 @@ class TaskState(Model):
     notes: str = Field(tag=2, default="")
     completed: bool = Field(tag=3, default=False)
     priority: str = Field(tag=4, default="")
+    subtasks: list[Subtask] = Field(tag=5, default_factory=list)
 
 
 class CreateTaskRequest(Model):
@@ -145,10 +163,28 @@ class TaskResponse(Model):
     notes: str = Field(tag=2, default="")
     completed: bool = Field(tag=3, default=False)
     priority: str = Field(tag=4, default="")
+    subtasks: list[Subtask] = Field(tag=5, default_factory=list)
 
 
 class SetCompletedRequest(Model):
     completed: bool = Field(tag=1, default=False)
+
+
+class AddSubtaskRequest(Model):
+    title: str = Field(tag=1, default="")
+
+
+class AddSubtaskResponse(Model):
+    subtask_id: str = Field(tag=1, default="")
+
+
+class SetSubtaskCompletedRequest(Model):
+    subtask_id: str = Field(tag=1, default="")
+    completed: bool = Field(tag=2, default=False)
+
+
+class RemoveSubtaskRequest(Model):
+    subtask_id: str = Field(tag=1, default="")
 
 
 class EditRequest(Model):
@@ -243,6 +279,22 @@ api = API(
             ),
             set_completed=Writer(
                 request=SetCompletedRequest,
+                response=None,
+                mcp=None,
+            ),
+            add_subtask=Writer(
+                request=AddSubtaskRequest,
+                response=AddSubtaskResponse,
+                mcp=None,
+            ),
+            set_subtask_completed=Writer(
+                request=SetSubtaskCompletedRequest,
+                response=None,
+                errors=[UnknownSubtaskError],
+                mcp=None,
+            ),
+            remove_subtask=Writer(
+                request=RemoveSubtaskRequest,
                 response=None,
                 mcp=None,
             ),

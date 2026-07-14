@@ -27,4 +27,5 @@ async def _reboot_up_envoy_free(self, *args, **kwargs):
     return await _reboot_up_with_defaults(self, *args, **kwargs)
 
 
-Reboot.up = _reboot_up_envoy_free
+# The method assignment is the point of this guard; silence only that.
+Reboot.up = _reboot_up_envoy_free  # type: ignore[method-assign]

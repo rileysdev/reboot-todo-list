@@ -10,12 +10,19 @@ import {
 import { useTask, useTodoList } from "@api/todo/v1/todo_rbt_react";
 import css from "./App.module.css";
 
+type SubtaskData = {
+  id: string;
+  title: string;
+  completed: boolean;
+};
+
 type TaskData = {
   id: string;
   title: string;
   notes: string;
   completed: boolean;
   priority: string;
+  subtasks: SubtaskData[];
 };
 
 const PRIORITY_ORDER = ["none", "low", "medium", "high"] as const;
@@ -75,6 +82,17 @@ const CheckIcon: FC = () => (
   </svg>
 );
 
+const PlusIcon: FC = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" aria-hidden="true">
+    <path
+      d="M6.5 2 L6.5 11 M2 6.5 L11 6.5"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
 const TaskRow: FC<{
   task: TaskData;
   dragging: boolean;
@@ -98,6 +116,27 @@ const TaskRow: FC<{
 
   const toggle = () => {
     void actor.setCompleted({ completed: !task.completed });
+  };
+
+  const [addingSubtask, setAddingSubtask] = useState(false);
+  const [subtaskDraft, setSubtaskDraft] = useState("");
+
+  const toggleSubtask = (subtask: SubtaskData) => {
+    void actor.setSubtaskCompleted({
+      subtaskId: subtask.id,
+      completed: !subtask.completed,
+    });
+  };
+
+  const removeSubtask = (subtaskId: string) => {
+    void actor.removeSubtask({ subtaskId });
+  };
+
+  const commitSubtask = () => {
+    const title = subtaskDraft.trim();
+    if (!title) return;
+    setSubtaskDraft("");
+    void actor.addSubtask({ title });
   };
 
   const cyclePriority = () => {
@@ -218,6 +257,16 @@ const TaskRow: FC<{
       </button>
 
       <button
+        className={css.subtaskAddBtn}
+        onClick={() => setAddingSubtask((open) => !open)}
+        aria-label="Add subtask"
+        title="Add subtask"
+        type="button"
+      >
+        <PlusIcon />
+      </button>
+
+      <button
         className={css.noteBtn}
         onClick={() => setNotesOpen((v) => !v)}
         aria-label="Edit note"
@@ -251,6 +300,80 @@ const TaskRow: FC<{
           />
         </svg>
       </button>
+
+      {(task.subtasks.length > 0 || addingSubtask) && (
+        <div className={css.subtaskList}>
+          {task.subtasks.map((subtask) => (
+            <div
+              key={subtask.id}
+              className={[
+                css.subtaskRow,
+                subtask.completed ? css.subtaskDone : "",
+              ].join(" ")}
+            >
+              <button
+                className={[
+                  css.subtaskCheck,
+                  subtask.completed ? css.checkOn : "",
+                ].join(" ")}
+                onClick={() => toggleSubtask(subtask)}
+                aria-label={
+                  subtask.completed
+                    ? "Mark subtask incomplete"
+                    : "Mark subtask complete"
+                }
+                type="button"
+              >
+                {subtask.completed && <CheckIcon />}
+              </button>
+              <span className={css.subtaskTitle}>{subtask.title}</span>
+              <button
+                className={css.subtaskDelete}
+                onClick={() => removeSubtask(subtask.id)}
+                aria-label="Remove subtask"
+                title="Remove subtask"
+                type="button"
+              >
+                <svg
+                  width="11"
+                  height="11"
+                  viewBox="0 0 13 13"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M3 3 L10 10 M10 3 L3 10"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
+            </div>
+          ))}
+          {addingSubtask && (
+            <div className={css.subtaskRow}>
+              <span className={css.subtaskCheckGhost} />
+              <input
+                autoFocus
+                className={css.subtaskInput}
+                value={subtaskDraft}
+                placeholder="Add a subtask and press Enter…"
+                onChange={(e) => setSubtaskDraft(e.target.value)}
+                onBlur={() => {
+                  if (!subtaskDraft.trim()) setAddingSubtask(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") commitSubtask();
+                  if (e.key === "Escape") {
+                    setSubtaskDraft("");
+                    setAddingSubtask(false);
+                  }
+                }}
+              />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
@@ -267,6 +390,11 @@ export const BoardApp: FC = () => {
     notes: t.notes,
     completed: t.completed,
     priority: t.priority,
+    subtasks: (t.subtasks ?? []).map((subtask) => ({
+      id: subtask.id,
+      title: subtask.title,
+      completed: subtask.completed,
+    })),
   }));
   const serverIds = serverTasks.map((t) => t.id);
   const serverJoin = serverIds.join(",");

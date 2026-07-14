@@ -1,5 +1,7 @@
 """Servicers for the todo app: User front door, TodoList, and Task."""
 
+import uuid
+
 import rbt.v1alpha1.errors_pb2 as errors_pb2
 from reboot.aio.auth.authorizers import (
     allow_if,
@@ -15,7 +17,9 @@ from todo.v1.todo import (
     InvalidPriorityError,
     ListSummary,
     OrderMismatchError,
+    Subtask,
     TaskView,
+    UnknownSubtaskError,
 )
 from todo.v1.todo_rbt import Task, TodoList, User
 
@@ -108,6 +112,7 @@ class TodoListServicer(TodoList.Servicer):
                     notes=task.notes,
                     completed=task.completed,
                     priority=task.priority,
+                    subtasks=list(task.subtasks),
                 )
             )
         return TodoList.GetResponse(name=self.state.name, tasks=tasks)
@@ -205,6 +210,7 @@ class TaskServicer(Task.Servicer):
             notes=self.state.notes,
             completed=self.state.completed,
             priority=self.state.priority,
+            subtasks=list(self.state.subtasks),
         )
 
     async def set_completed(
@@ -213,6 +219,66 @@ class TaskServicer(Task.Servicer):
         request: Task.SetCompletedRequest,
     ) -> None:
         self.state.completed = request.completed
+        # The task's completion state flows down: subtasks follow their
+        # task in both directions. (Unchecking must cascade too —
+        # otherwise all-complete subtasks would immediately re-complete
+        # the task via the all-subtasks-complete rule.)
+        for subtask in self.state.subtasks:
+            subtask.completed = request.completed
+
+    async def add_subtask(
+        self,
+        context: WriterContext,
+        request: Task.AddSubtaskRequest,
+    ) -> Task.AddSubtaskResponse:
+        subtask = Subtask(id=str(uuid.uuid4()), title=request.title)
+        self.state.subtasks.append(subtask)
+        # A new subtask starts incomplete, so the task no longer has
+        # every subtask complete.
+        self.state.completed = False
+        return Task.AddSubtaskResponse(subtask_id=subtask.id)
+
+    async def set_subtask_completed(
+        self,
+        context: WriterContext,
+        request: Task.SetSubtaskCompletedRequest,
+    ) -> None:
+        for subtask in self.state.subtasks:
+            if subtask.id == request.subtask_id:
+                subtask.completed = request.completed
+                break
+        else:
+            raise Task.SetSubtaskCompletedAborted(
+                UnknownSubtaskError(subtask_id=request.subtask_id)
+            )
+        # Completion flows up: the task is complete exactly when every
+        # subtask is complete.
+        self.state.completed = all(
+            subtask.completed for subtask in self.state.subtasks
+        )
+
+    async def remove_subtask(
+        self,
+        context: WriterContext,
+        request: Task.RemoveSubtaskRequest,
+    ) -> None:
+        remaining_subtasks = [
+            subtask
+            for subtask in self.state.subtasks
+            if subtask.id != request.subtask_id
+        ]
+        if len(remaining_subtasks) == len(self.state.subtasks):
+            # Tolerate an already-removed subtask, mirroring
+            # `TodoList.remove_task`.
+            return
+        self.state.subtasks = remaining_subtasks
+        # Recompute completion from the remaining subtasks. When none
+        # remain the task keeps its current state — an empty task has no
+        # subtasks to imply anything.
+        if remaining_subtasks:
+            self.state.completed = all(
+                subtask.completed for subtask in remaining_subtasks
+            )
 
     async def edit(
         self,
