@@ -58,26 +58,34 @@ instructions, the turn-budget hook, rulesets-as-code, and the merge settings.
 - **`.github/workflows/ci.yml`** — a placeholder pull-request workflow. The
   control plane's merge rule aggregates GitHub Actions check-runs on the PR
   head, so every project must run *something* on PRs; replace the placeholder
-  echo with the project's real checks. The Envoy-dependent suites MUST run
-  here: sessions skip them in the sandbox (see the CI-only guard above), so a
-  placeholder CI would merge them untested.
+  echo with the project's real checks. The backend suites MUST run here even
+  though sessions run them Envoy-free in the sandbox: CI is the only place
+  the Envoy-fronted path runs, and it is the merge authority.
 - **`rulesets/*.json`** — rulesets-as-code, applied per repo by
   `setup-github.sh` (a ruleset is a repository setting, which "Use this
   template" does not copy).
 
-## Per new repo, once: `./setup-github.sh <owner/repo>`
+## Per new repo, once
 
-Applies the committed rulesets (Copilot auto-review on every PR targeting the
-default branch — requires a Copilot Pro/Pro+/Max plan) and patches merge
-settings: squash merging allowed (the control plane merges by squash) and
-**auto-delete head branches** (each loop round dispatches a fresh branch;
-without this they accumulate forever). Requires `gh` with admin access.
-
-Then **onboard the repo in the control-plane dashboard** — task queue, project
-brief, optionally the Routine endpoint/API key. When creating the Routine,
-**select Fable in its model selector**: a Routine runs on the model chosen at
-creation, not the repo's `.claude/settings.json` (which covers headless and
-human sessions).
+1. **Grant the Claude GitHub App the repo** — on github.com: Settings →
+   Applications → Claude → Configure → add the repo under Repository access
+   (install the app first from github.com/apps/claude if it isn't there).
+   Without the grant a session clones a public repo fine but every push and
+   PR call returns 403 — the loop observes only silence and burns its
+   silent-death redispatches on healthy sessions. The app's default
+   claude/-prefix branch push restriction is fine as-is: the loop dispatches
+   to `claude/loop-*` branches.
+2. **`./setup-github.sh <owner/repo>`** — applies the committed rulesets
+   (Copilot auto-review on every PR targeting the default branch — requires a
+   Copilot Pro/Pro+/Max plan) and patches merge settings: squash merging
+   allowed (the control plane merges by squash) and **auto-delete head
+   branches** (each loop round dispatches a fresh branch; without this they
+   accumulate forever). Requires `gh` with admin access.
+3. **Onboard the repo in the control-plane dashboard** — task queue, project
+   brief, optionally the Routine endpoint/API key. When creating the Routine,
+   **select Fable in its model selector**: a Routine runs on the model chosen
+   at creation, not the repo's `.claude/settings.json` (which covers headless
+   and human sessions).
 
 ## Checklist / cautions
 
