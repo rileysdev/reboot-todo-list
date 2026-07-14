@@ -1,4 +1,6 @@
 {
+  "model": "fable",
+  "effortLevel": "xhigh",
   "hooks": {
     "PostToolUse": [
       {
