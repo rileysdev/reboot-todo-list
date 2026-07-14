@@ -3,10 +3,11 @@
 # merge rule only when every check passes), and the review phase refuses to
 # act until CI concludes — so this workflow must run on every pull request.
 #
-# The backend suites MUST run here even though sessions also run them
-# Envoy-free in the sandbox (backend/tests/conftest.py): CI has Docker, so
-# it exercises the Envoy-fronted harness path too, and it is the merge
-# authority.
+# Sessions also run the suites in their sandbox, but CI is the merge
+# authority. Both suites run Envoy-free everywhere (see
+# backend/tests/conftest.py): no test uses the HTTP surface, and
+# Envoy-in-Docker races on runner port allocation (actions run
+# 29357037307).
 name: ci
 
 on:

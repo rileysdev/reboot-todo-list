@@ -141,13 +141,13 @@ Run every check the sandbox supports: type checkers, linters, frontend
 builds, and pytest. The Reboot test harness boots a local Envoy proxy for
 any application with HTTP routes or mounts, and Envoy (a PATH executable or
 Docker) does not exist in this sandbox — its network policy also blocks
-downloading one — so projects carry a conftest guard that forces the harness
-to run without the proxy when no Envoy source is available; the suites still
-run in full over gRPC. Do not bootstrap Docker or Envoy — a PreToolUse hook
-blocks those commands. A check that genuinely needs the HTTP surface or
-Envoy itself is CI-only: state that in the PR body instead of working around
-the guard. CI on GitHub's runners executes everything with Envoy present and
-is the merge authority. The PR body states which checks ran in-session (with
+downloading one — so projects carry a conftest guard that runs the harness
+Envoy-free; the suites run in full over gRPC, identically here and in CI.
+Do not bootstrap Docker or Envoy — a PreToolUse hook blocks those commands.
+A check that genuinely needs the HTTP surface opts back in explicitly
+(`local_envoy=True` in its own `up()` call) and is CI-only: state that in
+the PR body instead of working around the guard. CI on GitHub's runners is
+the merge authority. The PR body states which checks ran in-session (with
 output) and anything deferred to CI.
 
 ## Never modify the loop's own machinery

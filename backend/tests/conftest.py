@@ -1,37 +1,31 @@
-"""Run the harness Envoy-free where Envoy can't exist.
+"""Run the Reboot test harness without its local Envoy proxy.
 
-This app mounts MCP/HTTP routes, so `reboot.aio.tests.Reboot.up` boots a
-local Envoy proxy by default (auto-enabled whenever the application has HTTP
-routes or mounts). Envoy arrives as a PATH executable or the envoyproxy
-Docker image — a Claude Code Routine sandbox has neither, and its network
-policy blocks downloading one. These tests never touch the HTTP surface
-(they speak gRPC through external contexts), so where no Envoy source
-exists, force the harness to skip the proxy rather than skipping the tests:
-the full suite runs everywhere, and CI (which has Docker) also exercises the
-Envoy-fronted path. `servers=1` matches the configuration proven green in
-the sandbox (loop session of 2026-07-14, 21/21 per app); multi-server
-consensus spawns processes a constrained sandbox may not afford.
+`reboot.aio.tests.Reboot.up` boots Envoy (a PATH executable or the
+envoyproxy Docker image) whenever the application has HTTP routes or
+mounts. These tests never touch the HTTP surface — they speak gRPC through
+external contexts — and Envoy has proven a pure liability in every
+environment this suite runs in: Routine sandboxes have no Docker and no
+network route to an Envoy binary, and Envoy-in-Docker on GitHub CI runners
+races on port allocation ("address already in use"; actions run
+29357037307). `servers=1` matches the configuration proven green in the
+sandbox (loop session of 2026-07-14); multi-server consensus adds processes
+without covering more of this app.
+
+The wrapper only fills in defaults: a test that genuinely exercises the
+HTTP surface opts back in by passing `local_envoy=True` to its own `up()`
+call.
 """
-
-import os
-import shutil
 
 from reboot.aio.tests import Reboot
 
-
-def _envoy_available() -> bool:
-    return shutil.which("envoy") is not None or os.path.exists(
-        "/var/run/docker.sock"
-    )
+_reboot_up_with_defaults = Reboot.up
 
 
-if not _envoy_available():
-    _reboot_up_with_envoy = Reboot.up
+async def _reboot_up_envoy_free(self, *args, **kwargs):
+    kwargs.setdefault("local_envoy", False)
+    kwargs.setdefault("servers", 1)
+    return await _reboot_up_with_defaults(self, *args, **kwargs)
 
-    async def _reboot_up_without_envoy(self, *args, **kwargs):
-        kwargs.setdefault("local_envoy", False)
-        kwargs.setdefault("servers", 1)
-        return await _reboot_up_with_envoy(self, *args, **kwargs)
 
-    # The method assignment is the point of this guard; silence only that.
-    Reboot.up = _reboot_up_without_envoy  # type: ignore[method-assign]
+# The method assignment is the point of this guard; silence only that.
+Reboot.up = _reboot_up_envoy_free  # type: ignore[method-assign]

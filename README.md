@@ -31,11 +31,12 @@ instructions, the turn-budget hook, rulesets-as-code, and the merge settings.
   invocations and Envoy downloads (`exit 2` on a `PreToolUse` match). The
   Routine sandbox has neither Docker nor network access to the Envoy release
   hosts; this hook stops a session from burning turns bootstrapping either.
-  Pair it with a conftest guard in the project that forces the Reboot test
-  harness to run without its Envoy proxy when no Envoy source is available
-  (the suites run in full over gRPC — see reboot-todo-list's
-  `backend/tests/conftest.py` for the pattern); CI, which has Docker, also
-  exercises the Envoy-fronted path and is the merge authority.
+  Pair it with a conftest guard in the project that runs the Reboot test
+  harness Envoy-free (the suites run in full over gRPC, identically in the
+  sandbox and CI — see reboot-todo-list's `backend/tests/conftest.py` for
+  the pattern; Envoy-in-Docker also proved racy on GitHub runners). A test
+  that genuinely needs the HTTP surface opts back in with
+  `local_envoy=True`.
 - **`.claude/hooks/heartbeat.sh`** — POSTs `{"branch", "last_seen_ms"}` to the
   control plane's `/heartbeat` route (async, so it never blocks a tool call).
   Fail-open (a heartbeat is advisory; nothing may ever break the session) and
@@ -58,9 +59,9 @@ instructions, the turn-budget hook, rulesets-as-code, and the merge settings.
 - **`.github/workflows/ci.yml`** — a placeholder pull-request workflow. The
   control plane's merge rule aggregates GitHub Actions check-runs on the PR
   head, so every project must run *something* on PRs; replace the placeholder
-  echo with the project's real checks. The backend suites MUST run here even
-  though sessions run them Envoy-free in the sandbox: CI is the only place
-  the Envoy-fronted path runs, and it is the merge authority.
+  echo with the project's real checks. Sessions verify what their sandbox
+  allows, but CI is the merge authority — an always-green placeholder merges
+  the project untested.
 - **`rulesets/*.json`** — rulesets-as-code, applied per repo by
   `setup-github.sh` (a ruleset is a repository setting, which "Use this
   template" does not copy).
